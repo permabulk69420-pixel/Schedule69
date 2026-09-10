@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#252b28" />
+    <meta name="description" content="A quiet neighbourhood to explore in VR. Built for Meta Quest 3." />
+    <title>Schedule 69 — Cedar Street</title>
+  </head>
+  <body>
+    <canvas id="world" aria-label="Cedar Street 3D neighbourhood"></canvas>
+    <div id="loading"><span>SCHEDULE <b>69</b></span><p>Opening Cedar Street…</p></div>
+    <div id="hud">
+      <header><div class="brand">SCHEDULE <b>69</b></div><div class="place">CEDAR STREET</div></header>
+      <div id="instructions"><strong>A quiet corner of town.</strong><p id="control-help">WASD to walk · Drag to look · Shift to move faster</p></div>
+      <div id="actions"><button id="walk" type="button">Explore</button><button id="enter-vr" type="button" disabled>Checking VR…</button></div>
+      <button id="help" aria-label="Show controls" type="button">?</button>
+    </div>
+    <div id="touch-controls"><div id="move-pad" aria-label="Movement joystick"><div id="move-knob"></div></div><span class="look-hint">Drag right side to look</span></div>
+    <div id="error" role="alert" hidden></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
