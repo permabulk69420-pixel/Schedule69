@@ -32,7 +32,7 @@ export function extendPineAvenue(b, api) {
       b.box(at,bottom+height/2,.05,.045,height,.07,'trim',0,false);
       b.box(at,bottom+height*.42,.05,width,.045,.07,'trim',0,false);
     }else{
-      b.box(at,floorY-.015,0,width,.03,.48,'trim',0,false);
+      b.box(at,floorY-.01,0,width,.03,.48,'trim',0,false);
     }
   }
   function openLeaf(at,width,height,material='green',glazed=false){
@@ -96,12 +96,12 @@ export function extendPineAvenue(b, api) {
       partition(0,-2.5,w-.25,0,[doorway(-4.7,1.5)],h);
       b.box(0,floorY+h+.065,0,w+.2,.13,d+.2,'ceiling');
       rooftop(w,d,floorY+h+.15);
-      sign(0,3.39,d/2+.2,w-.4,.73,id);
+      sign(0,3.39,d/2+.18,w-.4,.73,id);
       b.box(0,2.87,d/2+.64,w+.35,.12,1.46,id==='supply'?'green':'red');
       b.box(0,2.78,d/2+1.35,w+.35,.15,.06,'cream');
       for(const sx of[-1,1])b.beam([sx*(w/2-.1),2.3,d/2],[sx*(w/2-.1),2.81,d/2+1.24],.025,'metal');
-      sign(-4.2,1.72,d/2+.18,1.9,.95,detail);
-      b.box(0,floorY-.055,d/2+.92,w+.3,.11,1.9,'concrete',0,false);
+      sign(-4.2,1.72,d/2+.085,1.9,.95,detail);
+      b.box(0,floorY-.055,d/2+.985,w+.3,.11,1.77,'concrete',0,false);
       for(const lx of[-3.9,3.9]){
         b.box(lx,3.65,.4,.36,.075,1.85,'metal');
         b.box(lx,3.605,.4,.27,.016,1.68,'glow',0,false);
@@ -122,7 +122,7 @@ export function extendPineAvenue(b, api) {
 
   // A neighbour keeps the starter home from feeling isolated.
   house(.5,77,Math.PI/2,'fadedBlue',12,11,false);
-  b.area(.5,77,Math.PI/2,()=>sign(1.08,1.8,5.67,.5,.27,'neighbourNumber'));
+  b.area(.5,77,Math.PI/2,()=>sign(1.08,1.8,5.56,.5,.27,'neighbourNumber'));
 
   // No. 18: living room, bedroom, utility room, bathroom, central hall and garden.
   const homeX=44,homeZ=82,w=12,d=12,h=3.02,yaw=-Math.PI/2;
@@ -144,7 +144,7 @@ export function extendPineAvenue(b, api) {
       b.cylinder(side*(w/2+.1),1.62,-d/2-.05,.035,.035,3,'metal',6);
     }
     // Level thresholds preserve the measured headset height without stairs.
-    b.box(0,floorY-.06,d/2+1.34,5.4,.12,2.7,'floorboards',0,false);
+    b.box(0,floorY-.06,d/2+1.395,5.4,.12,2.61,'floorboards',0,false);
     b.box(0,2.73,d/2+1.36,5.75,.14,3.06,'roof');
     for(const side of[-1,1]){
       b.box(side*2.48,1.42,d/2+2.53,.13,2.56,.13,'trim');b.collision(side*2.48,d/2+2.53,.17,.17);
@@ -152,8 +152,8 @@ export function extendPineAvenue(b, api) {
       for(let i=0;i<6;i++)b.box(side*2.48,.68,d/2+.27+i*.39,.045,.72,.045,'trim');
       b.collision(side*2.48,d/2+1.34,.12,2.64);
     }
-    b.box(0,floorY-.05,d/2+5.25,1.75,.1,5.2,'concrete',0,false);
-    b.box(0,floorY-.055,-d/2-2.1,4,.11,4.2,'concrete',0,false);
+    b.box(0,floorY-.05,d/2+5.275,1.75,.1,5.15,'concrete',0,false);
+    b.box(0,floorY-.055,-d/2-2.145,4,.11,4.11,'concrete',0,false);
     sign(1.02,1.89,d/2+.18,.5,.28,'homeNumber');
     b.box(-1.1,2.51,d/2+.22,.14,.22,.15,'metal');b.box(-1.1,2.5,d/2+.306,.1,.15,.024,'glow',0,false);
     for(const [lx,lz]of[[0,3.3],[-3.5,-2.5],[3.5,-1.3],[3.5,-4.5],[0,-2.5]]){
@@ -171,11 +171,11 @@ export function extendPineAvenue(b, api) {
 
   // New paving and curb lengths stop short of the existing service-lane crossings.
   for(const x of[15.4,28.6]){
-    b.box(x,.065,-77,3.5,.17,51,'concrete',0,false);
+    b.box(x,.065,-76.25,3.5,.17,52.5,'concrete',0,false);
     b.box(x,.065,80.5,3.5,.17,58,'concrete',0,false);
   }
   for(const x of[17.25,26.75]){
-    b.box(x,.08,-77,.22,.24,51,'trim',0,false);
+    b.box(x,.08,-76.25,.22,.24,52.5,'trim',0,false);
     b.box(x,.08,80.5,.22,.24,58,'trim',0,false);
   }
   for(let z=-99;z<109;z+=5.2)if(z< -62||z>62)b.box(22,.016,z,.1,.008,2.5,'paint',0,false);

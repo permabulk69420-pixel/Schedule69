@@ -34,34 +34,83 @@ export function buildWorld(scene, m) {
     b.box(x,y-h/2-.12,z+.06,w+.4,.13,.36,'trim');b.box(x,y+h/2+.12,z+.02,w+.34,.09,.24,'trim');
     if(shutters)for(const sx of[-1,1]){b.box(x+sx*(w/2+.31),y,z-.02,.38,h+.13,.11,'green');for(let k=0;k<7;k++)b.box(x+sx*(w/2+.31),y-h/2+.16+k*h/7,z+.044,.32,.04,.03,'dark',0,false);}
   }
-  function door(x,z,style='dark'){
+  function door(x,z,style='dark',step=true){
     b.box(x,1.32,z,1.25,2.5,.18,'trim');b.box(x,1.31,z+.1,1.08,2.34,.06,style);b.box(x,1.77,z+.14,.77,1.01,.04,'glass',0,false);b.box(x+.38,1.18,z+.19,.045,.22,.06,'yellow');
-    b.box(x,.22,z+.32,1.6,.16,.7,'concrete');
+    if(step)b.box(x,.05,z+.32,1.6,.22,.7,'concrete');
   }
-  function ac(x,y,z){b.box(x,y,z,1,.58,.58,'metal');b.box(x,y,z+.3,.83,.42,.018,'dark',0,false);for(let k=0;k<5;k++)b.box(x,y-.15+k*.075,z+.32,.79,.02,.012,'metal',0,false);}
+  // Wall-mounted pieces take the wall surface, rather than an arbitrary offset.
+  function ac(x,y,wallZ){
+    b.box(x,y,wallZ+.23,1,.58,.56,'metal');
+    b.box(x,y,wallZ+.52,.83,.42,.018,'dark',0,false);
+    for(let k=0;k<5;k++)b.box(x,y-.15+k*.075,wallZ+.54,.79,.02,.012,'metal',0,false);
+    for(const side of[-1,1]){
+      b.box(x+side*.37,y-.4,wallZ+.025,.075,.36,.09,'dark');
+      b.beam([x+side*.37,y-.51,wallZ+.025],[x+side*.37,y-.29,wallZ+.48],.027,'metal');
+    }
+  }
+  function fireEscape(levels){
+    // Local Z=0 is the facade. Decks and steel brackets overlap that surface.
+    for(const y of levels){
+      b.box(0,y-.05,.6,3,.1,1.32,'metal');
+      for(const x of[-1.4,1.4]){
+        b.box(x,y+.53,1.2,.065,1.08,.065,'dark');
+        b.box(x,y-.54,.025,.16,1.1,.1,'metal');
+        b.beam([x,y-.99,.02],[x,y-.1,1.15],.045,'dark');
+        b.beam([x,y+1.07,.02],[x,y+1.07,1.23],.037,'dark');
+        for(let i=1;i<5;i++)b.box(x,y+.54,i*.24,.03,1.02,.03,'metal');
+      }
+      for(const side of[-1,1]){
+        b.beam([side*.47,y+1.07,1.2],[side*1.4,y+1.07,1.2],.037,'dark');
+        for(let i=0;i<4;i++)b.box(side*(.55+i*.25),y+.54,1.2,.028,1.02,.028,'metal');
+      }
+      for(const x of[-.37,.37])b.beam([x,y-.14,.025],[x,y-.14,1.46],.028,'metal');
+    }
+    const top=levels.at(-1)+1.07;
+    for(const x of[-.37,.37])b.beam([x,.14,1.45],[x,top,1.45],.04,'dark');
+    for(let y=.36;y<top;y+=.28)b.beam([-.37,y,1.45],[.37,y,1.45],.024,'metal');
+    b.collision(0,1.45,.86,.16);
+  }
   function rooftop(w,d,h){b.box(0,h+.19,0,w+.5,.34,d+.5,'trim');b.box(0,h+.4,0,w-.4,.16,d-.4,'roof');for(const side of[-1,1]){b.box(0,h+.61,side*d/2,w+.35,.63,.22,'plaster');b.box(side*w/2,h+.61,0,.22,.63,d,'plaster');}b.box(-w*.2,h+1.04,-d*.18,2.3,1.15,1.8,'metal');for(let i=0;i<2;i++)b.cylinder(w*.26+i,h+1.1,-d*.3,.17,.22,1.6,'rust');}
-  function building({x,z,w,d,h,mat='brick',yaw=0,shop=null,glass=null,awning=false}){
+  function building({x,z,w,d,h,mat='brick',yaw=0,shop=null,glass=null,awning=false,escape=false}){
     buildingCount++;
     b.area(x,z,yaw,()=>{
       b.box(0,h/2+.14,0,w,h,d,mat);b.collision(0,0,w,d);
-      b.box(0,.5,0,w+.1,.72,d+.1,'darkBrick');rooftop(w,d,h+.14);
+      b.box(0,.35,0,w+.1,1.02,d+.1,'darkBrick');rooftop(w,d,h+.14);
+      const apron=shop==='garage'?2.1:.6;
+      b.box(0,.07,d/2+apron/2,w+.25,.14,apron,'concrete',0,false);
       b.box(0,3.6,d/2+.13,w+.3,.22,.33,'trim');
       const floors=Math.floor((h-3)/3);
-      for(let row=0;row<floors;row++)for(let col=0;col<Math.floor(w/3);col++)window(-w/2+1.7+col*(w-3.4)/Math.max(1,Math.floor(w/3)-1),5.35+row*3,d/2+.05,1.25,1.75);
-      for(const side of[-1,1])b.area(side*w/2,0,side*Math.PI/2,()=>{for(let row=0;row<Math.floor(h/3)-1;row++)for(let col=0;col<Math.floor(d/3.7);col++)window(-d/2+2+col*3.5,3.8+row*3,0,1.15,1.6);});
-      b.area(0,-d/2,Math.PI,()=>{door(w*.22,0);for(let row=0;row<floors;row++)for(let col=0;col<Math.floor(w/4);col++)window(-w/2+2.1+col*4,5.35+row*3,0,1.1,1.6);ac(-w*.2,2.5,.4);});
+      const columns=Math.floor(w/3),windowX=Array.from({length:columns},(_,col)=>-w/2+1.7+col*(w-3.4)/Math.max(1,columns-1));
+      for(let row=0;row<floors;row++)for(const wx of windowX)window(wx,5.35+row*3,d/2+.025,1.25,1.75);
+      for(const side of[-1,1])b.area(side*w/2,0,side*Math.PI/2,()=>{
+        const count=Math.max(1,Math.floor((d-3)/3.5)+1);
+        for(let row=0;row<floors;row++)for(let col=0;col<count;col++)window((col-(count-1)/2)*3.5,5.35+row*3,0,1.15,1.75);
+        if(escape&&side===1)fireEscape(Array.from({length:floors},(_,row)=>4.3+row*3));
+      });
+      b.area(0,-d/2,Math.PI,()=>{door(w*.22,0);for(let row=0;row<floors;row++)for(let col=0;col<Math.floor(w/4);col++)window(-w/2+2.1+col*4,5.35+row*3,0,1.1,1.75);ac(-w*.2,2.5,0);});
       for(const sx of[-1,1]){b.box(sx*(w/2-.18),h/2,d/2+.05,.36,h,.28,'trim');b.cylinder(sx*(w/2-.45),h/2,-d/2-.15,.055,.055,h,'rust',6);}
       if(shop){
-        sign(0,3.12,d/2+.21,w-1.1,.72,shop);
+        sign(0,3.12,d/2+.06,w-1.1,.72,shop);
         const sections=Math.floor((w-2.8)/3);let cursor=-w/2+1.8;
-        for(let i=0;i<sections;i++){b.box(cursor,1.64,d/2+.08,2.48,2.19,.13,'dark');b.plane(cursor,1.64,d/2+.16,2.32,2,atlas.material,0,signs[glass]);b.box(cursor,1.64,d/2+.19,.045,2,.045,'metal',0,false);cursor+=2.9;}
+        const shopWindow=(wx,ww=2.32)=>{b.box(wx,1.64,d/2+.055,ww+.16,2.1,.13,'dark');b.plane(wx,1.64,d/2+.125,ww,2,atlas.material,0,signs[glass]);b.box(wx,1.64,d/2+.15,.045,2,.045,'metal',0,false);};
+        if(shop==='garage'){
+          for(const wx of[-5,2]){
+            b.box(wx,1.44,d/2+.035,6.06,2.6,.15,'dark');b.box(wx,1.44,d/2+.115,5.8,2.43,.03,'metal');
+            for(let i=0;i<10;i++)b.box(wx,.36+i*.235,d/2+.138,5.72,.027,.018,'dark',0,false);
+          }
+          shopWindow(-10.3,2.1);shopWindow(8.25,2.1);
+        }else for(let i=0;i<sections;i++){shopWindow(cursor);cursor+=2.9;}
         door(w/2-1.35,d/2+.08);sign(w/2-1.35,1.89,d/2+.29,.65,.28,'open');
         if(awning){
           const count=Math.round((w-.2)/.55);for(let i=0;i<count;i++){const xpos=-w/2+.28+i*(w-.4)/count;const g=new THREE.BoxGeometry((w-.4)/count+.01,.09,1.5);b.add(g,i%2===0?'cream':'red',xpos,2.82,d/2+.73,.22);b.box(xpos,2.59,d/2+1.46,(w-.4)/count+.01,.3,.05,i%2===0?'cream':'red');}
           for(const sx of[-1,1])b.beam([sx*(w/2-.2),2.4,d/2],[sx*(w/2-.2),2.68,d/2+1.5],.035,'metal');
         }
-      }else{door(-w*.26,d/2+.05);for(let col=0;col<Math.floor(w/3.5)-1;col++)window(-w*.05+col*3.3,1.8,d/2+.05,1.5,1.9);}
-      for(let i=0;i<Math.min(floors,2);i++)ac(w*.28,4.4+i*3,d/2+.46);
+      }else{
+        door(-w*.26,d/2+.025);
+        const left=-w*.26+2.2,right=w/2-1.55,count=Math.max(1,Math.floor((right-left)/3.3)+1);
+        for(let col=0;col<count;col++)window(left+col*(right-left)/Math.max(1,count-1),1.8,d/2+.025,1.5,1.9);
+      }
+      for(let i=0;i<Math.min(floors,2);i++)ac(windowX.at(-1),4+i*3,d/2);
     });
   }
   function pitchedRoof(w,d,h,rise,mat='roof'){
@@ -75,19 +124,24 @@ export function buildWorld(scene, m) {
     for(const y of[.4,.99])b.beam([x1,y,z1],[x2,y,z2],picket?.045:.034,picket?'wood':'metal');
     b.collision((x1+x2)/2,(z1+z2)/2,Math.abs(x2-x1)+.11,Math.abs(z2-z1)+.11);
   }
-  function house(x,z,yaw,mat,w=12,d=11,two=false){
+  function house(x,z,yaw,mat,w=12,d=11,two=false,pathEnd=d/2+8){
     buildingCount++;
     const h=two?6.5:3.55;
     b.area(x,z,yaw,()=>{
-      b.box(0,h/2+.22,0,w,h,d,mat);b.box(0,.33,0,w+.1,.5,d+.1,'darkBrick');b.collision(0,0,w,d);pitchedRoof(w,d,h+.25,two?2.7:2.4);
+      b.box(0,h/2+.22,0,w,h,d,mat);b.box(0,.21,0,w+.1,.74,d+.1,'darkBrick');b.collision(0,0,w,d);pitchedRoof(w,d,h+.25,two?2.7:2.4);
       for(const sx of[-1,1]){b.box(sx*(w/2-.07),h/2+.2,d/2+.07,.19,h,.19,'trim');window(sx*w*.31,1.98,d/2+.07,1.5,1.8,true);if(two)window(sx*w*.31,5.1,d/2+.07,1.4,1.75,true);}
-      door(0,d/2+.08,'green');
-      b.box(0,.37,d/2+1.15,4.8,.35,2.3,'wood');
-      b.box(0,2.99,d/2+1.25,5.3,.18,2.9,'roof');for(const sx of[-1,1]){b.box(sx*2.14,1.65,d/2+2.2,.12,2.7,.12,'trim');b.beam([sx*2.14,1.2,d/2+.2],[sx*2.14,1.2,d/2+2.2],.055,'trim');for(let i=0;i<5;i++)b.box(sx*2.14,.86,d/2+.2+i*.4,.06,.6,.06,'trim');}
-      for(let i=0;i<3;i++)b.box(0,.15+i*.07,d/2+3.05-i*.27,1.9,.2+i*.07,.45,'concrete');
-      b.box(0,.155,d/2+5.4,1.9,.05,4.9,'concrete');
-      for(const side of[-1,1])b.area(side*w/2,0,side*Math.PI/2,()=>{window(-2,2,0,1.3,1.7);window(2,2,0,1.3,1.7);});
-      b.area(0,-d/2,Math.PI,()=>{door(-2,0);window(2,2,0,1.4,1.8);});
+      door(0,d/2+.04,'green',false);
+      // A supported, level porch meets the front path and the player ground height.
+      b.box(0,-.025,d/2+1.15,4.8,.25,2.3,'darkBrick');b.box(0,.12,d/2+1.15,4.8,.04,2.3,'floorboards',0,false);
+      b.box(0,2.99,d/2+1.25,5.3,.18,2.9,'roof');for(const sx of[-1,1]){
+        b.box(sx*2.14,1.52,d/2+2.2,.12,2.76,.12,'trim');b.beam([sx*2.14,1.05,d/2+.02],[sx*2.14,1.05,d/2+2.2],.045,'trim');
+        for(let i=0;i<6;i++)b.box(sx*2.14,.59,d/2+.16+i*.4,.045,.9,.045,'trim');b.collision(sx*2.14,d/2+1.15,.15,2.3);
+      }
+      const pathStart=d/2+2.3;b.box(0,.07,(pathStart+pathEnd)/2,1.9,.14,pathEnd-pathStart,'concrete',0,false);
+      for(const side of[-1,1])b.area(side*w/2,0,side*Math.PI/2,()=>{
+        for(const y of(two?[2,5.1]:[2])){window(-2,y,0,1.3,1.7);window(2,y,0,1.3,1.7);}
+      });
+      b.area(0,-d/2,Math.PI,()=>{door(-2,0);window(2,2,0,1.4,1.8);if(two)for(const wx of[-2,2])window(wx,5.1,0,1.4,1.75);});
       b.box(w*.27,h+2.1,-d*.22,.8,2.8,.85,'redBrick');b.box(w*.27,h+3.5,-d*.22,1,.16,1.05,'trim');
       fence(-w/2-2,-d/2-2,-w/2-2,d/2+7.4);fence(w/2+2,-d/2-2,w/2+2,d/2+7.4);fence(-w/2-2,d/2+7.4,-1.4,d/2+7.4);fence(1.4,d/2+7.4,w/2+2,d/2+7.4);
       b.cylinder(2.4,.65,d/2+6.9,.05,.06,1.25,'metal');b.box(2.4,1.3,d/2+6.9,.45,.32,.55,'dark');
@@ -104,13 +158,17 @@ export function buildWorld(scene, m) {
 
   // Continuous streets, four sidewalk corners, and a service lane behind each block.
   b.box(0,-.35,0,1200,.55,1200,'soil',0,false);
+  // Raised land fills the blocks up to 12 cm, just below the 14–15 cm paving.
+  // Splitting at every road keeps grass out of the asphalt and lane crossings.
+  for(const [left,right]of[[-91,17.14],[26.86,91]])for(const [back,front]of[[-115,-50],[-44,-5.15],[5.15,46.5],[51.5,120]])
+    b.box((left+right)/2,-.025,(back+front)/2,right-left,.29,front-back,'soil',0,false);
   b.box(0,-.04,0,178,.08,10,'asphalt',0,false);
   b.box(22,-.035,3.5,9.5,.08,217,'asphalt',0,false);
-  b.box(0,-.025,-47,176,.06,6,'asphalt',0,false);b.box(0,-.025,49,176,.06,5,'asphalt',0,false);
+  b.box(0,-.03,-47,176,.06,6,'asphalt',0,false);b.box(0,-.03,49,176,.06,5,'asphalt',0,false);
   for(const z of[-6.8,6.8]){b.box(-34,.065,z,102,.17,3.6,'concrete',0,false);b.box(57,.065,z,60,.17,3.6,'concrete',0,false);}
-  for(const x of[15.4,28.6]){b.box(x,.065,-29,3.5,.17,40.8,'concrete',0,false);b.box(x,.065,28,3.5,.17,38.8,'concrete',0,false);}
+  for(const x of[15.4,28.6])for(const [start,end]of[[-44,-8.6],[8.6,46.5]])b.box(x,.065,(start+end)/2,3.5,.17,end-start,'concrete',0,false);
   for(const z of[-5.04,5.04])for(const x of[-34,57])b.box(x,.08,z,x<0?102:60,.24,.22,'trim',0,false);
-  for(const x of[17.25,26.75])for(const z of[-29,28])b.box(x,.08,z,.22,.24,Math.abs(z)*2-17,'trim',0,false);
+  for(const x of[17.25,26.75])for(const [start,end]of[[-44,-8.6],[8.6,46.5]])b.box(x,.08,(start+end)/2,.22,.24,end-start,'trim',0,false);
   for(let x=-82;x<84;x+=5.2)if(x<13||x>31)for(const z of[-.13,.13])b.box(x,.012,z,2.5,.008,.085,'yellow',0,false);
   for(let z=-59;z<59;z+=5.2)if(Math.abs(z)>11&&Math.abs(z+47)>5&&Math.abs(z-49)>5)b.box(22,.016,z,.1,.008,2.5,'paint',0,false);
   for(const x of[12,32])for(let z=-3.8;z<4;z+=1.1)b.box(x,.019,z,2.6,.011,.53,'paint',0,false);
@@ -119,9 +177,9 @@ export function buildWorld(scene, m) {
   for(const x of[-58,-9,47,75])for(const z of[-4.8,4.8]){b.box(x,.023,z,1.02,.03,.29,'metal',0,false);for(let i=0;i<9;i++)b.box(x-.43+i*.105,.043,z,.045,.016,.25,'dark',0,false);}
   // A proper forecourt, visible from both approaches.
   b.area(-55,-24,0,()=>{
-    b.box(0,.05,0,38,.12,37,'concrete',0,false);
+    b.box(0,.07,0,38,.14,37,'concrete',0,false);
     b.box(0,1.98,-12,28,3.7,9,'cream');b.collision(0,-12,28,9);b.box(0,3.99,-12,29,.28,10,'trim');b.box(0,4.13,-7.23,29,.34,.28,'red');b.box(0,3.85,-7.21,29,.12,.3,'yellow');
-    for(const x of[-9,-5,2,6,10]){b.box(x,1.83,-7.43,3,2.15,.12,'dark');b.plane(x,1.83,-7.35,2.82,1.99,atlas.material,0,signs.marketGlass);}door(-1.5,-7.39);sign(0,3.35,-7.28,7,.6,'gasStore');
+    for(const x of[-9,-5,2,6,10]){b.box(x,1.83,-7.45,3,2.15,.12,'dark');b.plane(x,1.83,-7.38,2.82,1.99,atlas.material,0,signs.marketGlass);}door(-1.5,-7.44);sign(0,3.35,-7.44,7,.6,'gasStore');
     b.box(0,5.12,3,27,.38,13,'white');b.box(0,5.21,9.57,27,.34,.12,'red');b.box(0,5.03,9.64,27,.09,.14,'yellow');b.box(0,5.2,-3.55,27,.34,.12,'red');
     for(const x of[-10,10])for(const z of[-1.1,7.1]){b.box(x,2.65,z,.3,5,.3,'white');b.collision(x,z,.4,.4);}
     for(const x of[-6,6]){
@@ -132,31 +190,25 @@ export function buildWorld(scene, m) {
       for(const z of[-.1,6.2]){b.cylinder(x,.68,z,.09,.09,1.1,'yellow');b.collision(x,z,.2,.2);}
     }
     b.box(12.6,1.1,-5.6,1.2,2,.85,'red');b.plane(12.6,1.15,-5.16,1.08,1.85,atlas.material,0,signs.cola);b.collision(12.6,-5.6,1.25,.9);
-    for(const x of[-13,-8,-3,2,7]){b.box(x,.121,-4.8,.07,.009,3,'paint',0,false);}
+    for(const x of[-13,-8,-3,2,7]){b.box(x,.145,-4.8,.07,.009,3,'paint',0,false);}
     b.cylinder(17,3.5,11.79,.12,.19,7,'metal');sign(17,6.7,12,3.5,1.8,'gas');sign(17,4.85,12,3.1,1.35,'gasPrice');b.collision(17,12,.5,.5);
     b.box(-11,4.6,-12,2.6,1.1,1.6,'metal');
   });
 
   building({x:-18,z:-18,w:12,d:18,h:9.3,mat:'redBrick',shop:'laundry',glass:'laundryGlass'});
   building({x:2,z:-17,w:20,d:16,h:9.1,mat:'green',shop:'market',glass:'marketGlass',awning:true});
-  building({x:42,z:-18,w:22,d:18,h:12.6,mat:'brick',shop:'diner',glass:'dinerGlass',awning:true});
+  building({x:42,z:-18,w:22,d:18,h:12.6,mat:'brick',shop:'diner',glass:'dinerGlass',awning:true,escape:true});
   building({x:67,z:-21,w:19,d:24,h:15.4,mat:'darkBrick'});
-  b.area(67,-21,0,()=>sign(0,3.12,12.18,8,.6,'motel'));
+  b.area(67,-21,0,()=>sign(0,3.19,12.06,8,.42,'motel'));
   building({x:46,z:20,w:26,d:19,h:6.6,mat:'cream',yaw:Math.PI,shop:'garage',glass:'marketGlass'});
-  b.area(46,20,Math.PI,()=>{for(const x of[-5,2]){b.box(x,1.5,9.7,5.8,2.7,.08,'metal');for(let i=0;i<10;i++)b.box(x,.34+i*.245,9.76,5.72,.027,.02,'dark',0,false);}});
-  house(-65,27,Math.PI,'siding',11,11,false);house(-42,27,Math.PI,'fadedBlue',13,11,true);house(-17,27,Math.PI,'ochre',12,11,false);
-  house(70,31,Math.PI,'redBrick',11,13,true);
+  house(-65,27,Math.PI,'siding',11,11,false,18.5);house(-42,27,Math.PI,'fadedBlue',13,11,true,18.5);house(-17,27,Math.PI,'ochre',12,11,false,18.5);
+  house(70,31,Math.PI,'redBrick',11,13,true,22.5);
   // A modest rear courtyard and service details.
-  b.box(-3,.10,-36.4,35,.09,12,'gravel',0,false);b.box(50,.09,-39,48,.07,9,'gravel',0,false);
+  b.box(-3,.07,-36.4,35,.14,12,'gravel',0,false);b.box(50,.07,-39,48,.14,9,'gravel',0,false);
   dumpster(-22,-31,Math.PI);dumpster(-9,-32,Math.PI);dumpster(6,-29,Math.PI);dumpster(49,-31,Math.PI);dumpster(51,32);dumpster(58,32);
   b.box(7,.6,-35,1.6,1.05,1.1,'wood');b.box(6.8,1.28,-35,.8,.3,.65,'wood');
   for(const z of[-32,-36]){b.box(-17,.35,z,1.4,.5,1.1,'wood');for(let i=0;i<4;i++)b.box(-17,.65+i*.12,z,1.35,.06,.99,'wood');}
   fence(-29,-41,12,-41,false);fence(31,-43,79,-43,false);fence(-80,43,10,43,false);fence(33,43,59,43,false);
-  // External fire escape on the apartment's visible side.
-  b.area(55,-18,Math.PI/2,()=>{
-    for(const y of[4.7,7.7,10.7]){b.box(0,y,0,3,.1,1.2,'metal');for(const x of[-1.4,1.4]){b.box(x,y+.58,.5,.06,1.15,.06,'dark');}b.beam([-1.4,y+1.1,.5],[1.4,y+1.1,.5],.04,'dark');for(let i=0;i<9;i++)b.box(-1.25+i*.31,y+.55,.5,.025,1.05,.025,'metal');}
-    for(const x of[-.35,.35])b.beam([x,1.8,.7],[x,11.6,.7],.037,'dark');for(let y=2;y<11.6;y+=.29)b.beam([-.35,y,.7],[.35,y,.7],.023,'metal');
-  });
   for(const x of[-72,-30,9,36,74])lamp(x,-7.6,0);
   for(const x of[-55,-4,52])lamp(x,7.6,Math.PI);
   lamp(28.5,-38,-Math.PI/2);lamp(15.5,39,Math.PI/2);

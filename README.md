@@ -10,6 +10,14 @@ In the opposite direction, past the garage and the rear service lane, **No. 18 P
 
 Doors are static for this environment pass. There is no ownership, purchasing, shop stock, or door interaction yet. The architectural spaces are ready to build those systems into later.
 
+## Town visual pass
+
+- Raised the lawns to meet paving and extended foundations below the grass. House porches now have solid bases, level floors, and complete paths to the sidewalk.
+- Anchored the fire escape to its building with wall plates and diagonal supports. Its landings align with the upper windows.
+- Kept window layouts inside the facade edges, aligned upper floors around building corners, and added missing upper windows to the two-storey houses' rear and side walls.
+- Mounted air conditioners and signs against their wall surfaces, rebuilt the garage shutters, and paved the shop and garage approaches.
+- Removed overlapping surfaces at service-lane crossings, porches and door thresholds. Reduced shadow bias to keep shadows closer to the objects casting them.
+
 ## Explore
 
 Open the GitHub Pages deployment directly in Meta Quest Browser and select **Enter VR**.
@@ -47,18 +55,21 @@ GitHub Actions builds and deploys `dist/` on pushes to `main`. Repository Settin
 - `src/materials.js`: deterministic texture generation and shared sign atlas. Brick, concrete, asphalt, roofing, and siding have metre-scaled UVs. Replace maps here when adding authored textures later.
 - `src/main.js`: rendering, lighting, player rig, desktop/touch input, and WebXR session lifecycle.
 
-The current scene contains 14 buildings, 65 instanced pines, about 109,290 geometry triangles (excluding sky and controller models), and 252 collision bounds. The initial desktop frustum intersects about 185 draw batches. Trees in the extension lots were moved or removed to keep paths and interiors clear. These are geometry counts, not a measured Quest frame rate.
+The current scene contains 14 buildings, 65 instanced pines, about 113,420 geometry triangles (excluding sky and controller models), and 263 collision bounds. The initial desktop frustum intersects about 191 draw batches. Trees in the extension lots were moved or removed to keep paths and interiors clear. These are geometry counts, not a measured Quest frame rate.
 
 Rendering uses Lambert materials, shared procedural textures, one static 2048 px directional shadow map, and WebXR foveation. Shadows are refreshed at startup and on VR session transitions. If a future change moves shadow casters, explicitly invalidate the shadow map or change the shadow update strategy.
 
 ## Verification
 
-Production build, finite geometry, collision tunnelling/sliding, world boundaries, and turning with an offset headset have been checked. The neighbourhood check verifies 17 connected destinations from the original spawn, open entrances at head height, doorway traversal, rear garden access, solid wall collision, closed ceilings, and floors at the correct player height. Both checks run before deployment. The available remote browser had WebGL disabled, so live browser rendering, touch input, and real headset performance could not be verified there.
+Production build, finite geometry, collision tunnelling/sliding, world boundaries, and turning with an offset headset have been checked. The neighbourhood check verifies 17 connected destinations from the original spawn, open entrances at head height, doorway traversal, rear garden access, solid wall collision, closed ceilings, and floors at the correct player height. It also probes lawn levels, foundations, complete front paths, service-lane crossings, fire escape attachment and facade edges. Both checks run before deployment. The available remote browser had WebGL disabled, so live browser rendering, touch input, and real headset performance could not be verified there.
+
+The visual pass was inspected from 13 offline views covering both streets, front and rear gardens, the fire escape, garage, gas station, shop fronts and house foundations.
 
 The images below are **offline geometry previews**, rendered from the same scene meshes and textures with approximate lighting. They are not browser screenshots or Quest performance evidence.
 
 ![Cedar Street geometry preview](docs/cedar-street-preview.jpg)
-![Neighbourhood geometry preview](docs/neighbourhood-preview.jpg)
+![Residential foundations and paths](docs/residential-polish-preview.jpg)
+![Attached fire escape](docs/fire-escape-preview.jpg)
 
 Pine Avenue extension:
 

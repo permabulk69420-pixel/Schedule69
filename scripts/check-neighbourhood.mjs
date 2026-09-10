@@ -68,5 +68,27 @@ for(const [name,p]of targets.filter(([name])=>name.includes('interior')||name.st
   const eye=new THREE.Vector3(p[0],1.75,p[2]);ray.set(eye,new THREE.Vector3(0,1,0));const ceiling=ray.intersectObjects(meshes,false)[0];assert(ceiling&&ceiling.distance<2.5,name+' must have a closed ceiling.');
   ray.set(eye,new THREE.Vector3(0,-1,0));const floor=ray.intersectObjects(meshes,false)[0];assert(floor&&Math.abs(floor.point.y-.14)<.03,name+' floor must match the player ground height.');
 }
-console.log(`Passed ${targets.length} connected destinations, entry/back doors, solid walls, closed ceilings and level floors.`);
+// Regressions found in the visual pass: sunken lawns, unsupported foundations,
+// incomplete front paths, a fire escape detached from its facade, and a window
+// hanging beyond Cedar Court's corner. Probe rendered geometry at those sites.
+function surfaceAt(x,z){ray.set(new THREE.Vector3(x,.9,z),new THREE.Vector3(0,-1,0));ray.far=1.2;return ray.intersectObjects(meshes,false)[0];}
+for(const [x,z]of[[-68,18],[-45,18],[-20,18],[73,20],[9,73],[34,86],[57,85]]){
+  const hit=surfaceAt(x,z);assert(hit&&Math.abs(hit.point.y-.12)<.002,'Residential lawns must meet the building foundations and paving.');
+}
+for(const [x,z]of[[-65,10],[-42,12],[-17,10],[70,13],[12.9,77]]){
+  const hit=surfaceAt(x,z);assert(hit&&hit.object.material===m.concrete&&Math.abs(hit.point.y-.14)<.002,'Front paths must continue to the sidewalk.');
+}
+for(const [x,z]of[[15.4,-47],[28.6,49]]){
+  const hit=surfaceAt(x,z);assert(hit&&hit.object.material===m.asphalt&&Math.abs(hit.point.y)<.002,'Service lanes must not be covered by raised sidewalks.');
+}
+assert(Math.abs(surfaceAt(15.4,-50.8).point.y-.15)<.002,'The extended sidewalk must reach the service-lane edge.');
+ray.set(new THREE.Vector3(-68,0,21),new THREE.Vector3(0,0,1));ray.far=1;
+assert(ray.intersectObjects(meshes,false).some(hit=>hit.object.material===m.darkBrick),'House foundations must extend below the lawn, with no open underside.');
+for(const height of[4.3,7.3,10.3])for(let x=53.03;x<54.15;x+=.18){
+  ray.set(new THREE.Vector3(x,height+.2,-18.5),new THREE.Vector3(0,-1,0));ray.far=.35;
+  assert(ray.intersectObjects(meshes,false).some(hit=>hit.object.material===m.metal&&Math.abs(hit.point.y-height)<.002),'Fire escape decks must connect continuously to the facade.');
+}
+ray.set(new THREE.Vector3(76.65,1.8,-8),new THREE.Vector3(0,0,-1));ray.far=1.5;
+assert.equal(ray.intersectObjects(meshes,false).length,0,'Ground-floor windows must stay within Cedar Court’s wall edges.');
+console.log(`Passed ${targets.length} connected destinations, entrances, rooms, lawns, foundations, front paths, fire escape attachment and facade edges.`);
 console.log(JSON.stringify({buildings:world.buildingCount,triangles:world.triangles,trees:world.treeCount,colliders:world.colliders.length}));

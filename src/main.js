@@ -20,7 +20,7 @@ const rig=new THREE.Group();rig.name='PlayerRig';scene.add(rig);rig.add(camera);
 const spawn={x:-28,z:7.12,yaw:-.57};rig.position.set(spawn.x,.14,spawn.z);rig.rotation.y=spawn.yaw;camera.position.set(0,1.68,0);
 scene.add(new THREE.HemisphereLight('#c8dadd','#69694a',2.1));
 const sun=new THREE.DirectionalLight('#ffe0ac',2.7);sun.position.set(-68,72,45);sun.target.position.set(0,0,0);scene.add(sun,sun.target);
-sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-145,right:145,top:125,bottom:-125,near:1,far:250});sun.shadow.bias=-.0003;sun.shadow.normalBias=.075;sun.shadow.camera.updateProjectionMatrix();
+sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-145,right:145,top:125,bottom:-125,near:1,far:250});sun.shadow.bias=-.00015;sun.shadow.normalBias=.025;sun.shadow.camera.updateProjectionMatrix();
 const {m}=makeMaterials(renderer);
 let world;
 try{world=buildWorld(scene,m);}catch(error){fail('The neighbourhood could not finish loading. Please refresh the page.');throw error;}
