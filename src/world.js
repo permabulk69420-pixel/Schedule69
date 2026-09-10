@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { CityBuilder } from './geometry.js';
 import { SignAtlas, random } from './materials.js';
+import { extendPineAvenue } from './pine-avenue.js';
 
 // Metres, Y up. Building fronts point toward local +Z; each lot can be moved or rotated.
 export function buildWorld(scene, m) {
@@ -64,8 +65,8 @@ export function buildWorld(scene, m) {
     });
   }
   function pitchedRoof(w,d,h,rise,mat='roof'){
-    const half=w/2+.45,slope=Math.hypot(half,rise),a=Math.atan2(rise,half);
-    for(const side of[-1,1]){const g=new THREE.BoxGeometry(slope,.18,d+.85);const uv=g.attributes.uv;for(let i=0;i<uv.count;i++)uv.setXY(i,uv.getX(i)*slope/4,uv.getY(i)*d/4);b.add(g,mat,side*half/2,h+rise/2,0,0,0,-side*a);b.box(side*half,h-.06,0,.15,.17,d+.95,'trim');}
+    const run=w/2,overhang=.45,half=run+overhang,drop=rise*overhang/run,slope=Math.hypot(half,rise+drop),a=Math.atan2(rise,run);
+    for(const side of[-1,1]){const g=new THREE.BoxGeometry(slope,.18,d+.85);const uv=g.attributes.uv;for(let i=0;i<uv.count;i++)uv.setXY(i,uv.getX(i)*slope/4,uv.getY(i)*d/4);b.add(g,mat,side*half/2,h+(rise-drop)/2,0,0,0,-side*a);b.box(side*half,h-drop-.06,0,.15,.17,d+.95,'trim');}
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute([-w/2,h,d/2,w/2,h,d/2,0,h+rise,d/2,-w/2,h,-d/2,w/2,h,-d/2,0,h+rise,-d/2],3));g.setAttribute('uv',new THREE.Float32BufferAttribute([0,0,1,0,.5,1,0,0,1,0,.5,1],2));g.setIndex([0,1,2,5,4,3]);g.computeVertexNormals();b.add(g,'siding');
   }
   function fence(x1,z1,x2,z2,picket=true){
@@ -104,7 +105,7 @@ export function buildWorld(scene, m) {
   // Continuous streets, four sidewalk corners, and a service lane behind each block.
   b.box(0,-.35,0,1200,.55,1200,'soil',0,false);
   b.box(0,-.04,0,178,.08,10,'asphalt',0,false);
-  b.box(22,-.035,0,9.5,.08,130,'asphalt',0,false);
+  b.box(22,-.035,3.5,9.5,.08,217,'asphalt',0,false);
   b.box(0,-.025,-47,176,.06,6,'asphalt',0,false);b.box(0,-.025,49,176,.06,5,'asphalt',0,false);
   for(const z of[-6.8,6.8]){b.box(-34,.065,z,102,.17,3.6,'concrete',0,false);b.box(57,.065,z,60,.17,3.6,'concrete',0,false);}
   for(const x of[15.4,28.6]){b.box(x,.065,-29,3.5,.17,40.8,'concrete',0,false);b.box(x,.065,28,3.5,.17,38.8,'concrete',0,false);}
@@ -171,14 +172,16 @@ export function buildWorld(scene, m) {
   for(const [x,z]of[[-10,-7.6],[38,-7.6],[-34,8],[59,-7.6]]){b.cylinder(x,.68,z,.31,.29,1.06,'metal',10);b.cylinder(x,1.24,z,.34,.34,.09,'dark',10);b.collision(x,z,.65,.65);}
   // Pines give the district its scale and break up the boxy roofline.
   for(const [x,z,h]of[[-80,-28,15],[-79,-9,12],[-32,-20,14],[-29,-37,12],[-9,-39,14],[9,-37,12],[32,-35,15],[57,-37,13],[81,-34,16],[81,-10,13],[-79,17,13],[-54,17,11],[-29,17,13],[-4,16,15],[10,28,13],[-77,39,16],[-52,40,14],[-29,41,12],[-5,40,15],[59,38,11],[82,39,14],[82,14,13],[33,38,12]])pine(x,z,h,.9+rng()*.25);
-  for(let i=0;i<34;i++){const x=-100+i*6+rng()*4;pine(x,-61-rng()*8,12+rng()*10,.95);if(i%2===0)pine(x,65+rng()*10,11+rng()*8,1);}
+  for(let i=0;i<34;i++){const x=-100+i*6+rng()*4;const northZ=-61-rng()*8,northH=12+rng()*10;const southZ=65+rng()*10,southH=11+rng()*8;if(x< -14||x>68){pine(x,northZ,northH,.95);if(i%2===0)pine(x,southZ,southH,1);}}
+  const extension=extendPineAvenue(b,{m,atlas,sign,signs,house,rooftop,pitchedRoof,fence,lamp,utility,wire,pine,dumpster});
+  buildingCount+=extension.additionalShops+1; // Shops plus the new enterable starter house.
   // Unwalkable perimeter is framed by real fences and vegetation.
-  fence(-85,-57,83,-57,false);fence(-85,58,83,58,false);fence(-84,-56,-84,58,false);fence(83,-56,83,58,false);
-  for(let i=0;i<20;i++){const x=-115+i*12,h=8+rng()*20,z=-100-rng()*35;b.box(x,h/2,z,8+rng()*11,h,9+rng()*14,i%3===0?'darkBrick':'plaster');b.box(x,h+.2,z,10,.5,12,'trim');}
+  fence(-84,-56,-84,58,false);fence(83,-56,83,58,false);
+  for(let i=0;i<20;i++){const x=-115+i*12,h=8+rng()*20,z=-146-rng()*35;b.box(x,h/2,z,8+rng()*11,h,9+rng()*14,i%3===0?'darkBrick':'plaster');b.box(x,h+.2,z,10,.5,12,'trim');}
   const triangles=b.finish();
   const treeStats=buildPines(scene,m,trees);
   addSky(scene);
-  return {colliders:b.colliders,bounds:b.bounds,triangles:triangles+treeStats,treeCount:trees.length,buildingCount};
+  return {colliders:b.colliders,bounds:b.bounds,triangles:triangles+treeStats,treeCount:trees.length,buildingCount,places:extension.places,starterHouse:extension.home};
 }
 
 function buildPines(scene,m,trees){

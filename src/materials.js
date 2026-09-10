@@ -50,11 +50,25 @@ export function makeMaterials(renderer) {
     for(let i=0;i<50000;i++){c.fillStyle=['#a2a57544','#36493344','#b2a17433','#555b4344'][i%4];c.fillRect(rng()*s,rng()*s,1+rng()*4,1+rng()*6);}
   });
   const wood=texture(256,2.3,(c,s)=>{c.fillStyle='#918575';c.fillRect(0,0,s,s);for(let i=0;i<500;i++){c.fillStyle=rng()>.5?'#e5d1a725':'#2f30222e';c.fillRect(rng()*s,rng()*s,1+rng()*2,5+rng()*95);}for(let i=0;i<9;i++){c.fillStyle='#33382866';c.fillRect(i*s/8,0,2,s);}});
+  const interiorPaint=texture(256,1.2,(c,s)=>{c.fillStyle='#dfded3';c.fillRect(0,0,s,s);grain(c,s,11000,.025);});
+  const floorWood=texture(512,2.4,(c,s)=>{
+    c.fillStyle='#b4a087';c.fillRect(0,0,s,s);
+    for(let board=0;board<12;board++){
+      const x=board*s/12,tone=Math.floor(rng()*12);
+      c.fillStyle=`rgb(${168+tone},${145+tone},${114+tone})`;c.fillRect(x,0,s/12-1,s);
+      c.fillStyle='#65553c44';for(let joint=-1;joint<3;joint++)c.fillRect(x,joint*256+(board%3)*86,s/12,1);
+      for(let line=0;line<32;line++){c.fillStyle=rng()>.5?'#eed8b61c':'#514d4319';c.fillRect(x+rng()*(s/12-2),rng()*s,.5+rng()*.8,18+rng()*95);}
+    }grain(c,s,18000,.03);
+  });
   const m={};
   const lam=(name,color,map=null)=>{const mat=new THREE.MeshLambertMaterial({color,map});mat.name=name;m[name]=mat;return mat;};
   lam('brick','#c3a99a',brick);lam('redBrick','#c58f76',brick);lam('darkBrick','#9a9385',brick);
   lam('plaster','#d4cfb8',plaster);lam('green','#879c85',plaster);lam('cream','#e1d5b5',plaster);lam('fadedBlue','#94a3a5',siding);lam('siding','#ded9bd',siding);lam('ochre','#b7a989',siding);
   lam('asphalt','#a6a9ab',asphalt);lam('concrete','#d4d3c4',concrete);lam('gravel','#bcb8a5',asphalt);lam('roof','#d3d2c6',roof);lam('soil','#c0c49a',soil);lam('wood','#b2b098',wood);
+  lam('interior','#efede5',interiorPaint);lam('ceiling','#eeece4',interiorPaint);lam('floorboards','#e2d6c4',floorWood);lam('shopFloor','#c7c4ae',concrete);
+  m.interior.emissive.set('#8f8979');m.interior.emissiveIntensity=.12;
+  m.ceiling.emissive.set('#c4c0ae');m.ceiling.emissiveIntensity=.24;
+  m.clearGlass=new THREE.MeshLambertMaterial({color:'#b8ceca',transparent:true,opacity:.16,depthWrite:false,side:THREE.DoubleSide});m.clearGlass.name='clear-window-glass';
   lam('trim','#dbd8bf');lam('white','#ede9d5');lam('dark','#323d39');lam('metal','#596663');lam('rust','#897361');lam('red','#b84d35');lam('yellow','#e7b758');lam('paint','#c9c8a7');lam('leaf','#465e3d');lam('trunk','#756653');lam('bin','#486450');
   const glass=lam('glass','#4c6969');glass.emissive.set('#233632');glass.emissiveIntensity=.15;
   const glow=lam('glow','#ffd598');glow.emissive.set('#ffd18b');glow.emissiveIntensity=.8;
