@@ -25,6 +25,7 @@ sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.c
 const {m}=makeMaterials(renderer);
 let world;
 try{world=buildWorld(scene,m);}catch(error){fail('The neighbourhood could not finish loading. Please refresh the page.');throw error;}
+const sky=scene.getObjectByName('evening-sky');
 renderer.shadowMap.needsUpdate=true;
 
 // Controllers are deliberately simple, self-contained grips with no external assets.
@@ -109,6 +110,7 @@ renderer.setAnimationLoop(time=>{
   const dt=Math.min(Math.max((time-lastTime)/1000,0),.045);lastTime=time;
   if(active||renderer.xr.isPresenting)locomotion(dt);
   world.update(time*.001);
+  if(sky)sky.position.copy(rig.position);
   renderer.render(scene,camera);
   frameCount++;if(time-sampleStart>=1000){window.cityDebug.fps=Math.round(frameCount*1000/(time-sampleStart));frameCount=0;sampleStart=time;}
   if(!document.querySelector('#loading').classList.contains('done'))document.querySelector('#loading').classList.add('done');
