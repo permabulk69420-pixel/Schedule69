@@ -5,9 +5,9 @@ import { buildWorld } from './world.js';
 import { moveWithCollision, rotateAroundHead } from './geometry.js';
 import { groundHeight } from './surfaces.js';
 
-const canvas=document.querySelector('#world'),vrButton=document.querySelector('#enter-vr'),walkButton=document.querySelector('#walk'),help=document.querySelector('#control-help');
+const canvas=document.querySelector('#world'),vrButton=document.querySelector('#enter-vr'),walkButton=document.querySelector('#walk'),seatedButton=document.querySelector('#seated-mode'),help=document.querySelector('#control-help');
 const coarse=matchMedia('(pointer: coarse)').matches;
-if(coarse)help.textContent='Explore with touch · In VR: left stick moves, right stick turns';
+if(coarse)help.textContent='Explore with touch · In VR: left stick moves, right stick turns · click right stick to run';
 const fail=(message)=>{const el=document.querySelector('#error');el.hidden=false;el.textContent=message;document.querySelector('#loading').classList.add('done');};
 let renderer;
 try{renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});}catch(error){fail('This browser could not start the 3D scene. Try opening the page in Meta Quest Browser or a browser with WebGL enabled.');throw error;}
@@ -38,9 +38,11 @@ for(let i=0;i<2;i++){
 
 const keys=new Set(),touchMove={x:0,y:0};let active=false,pitch=0,drag=null,lastTime=0,frameCount=0,sampleStart=0;
 const head=new THREE.Vector3(),forward=new THREE.Vector3(),right=new THREE.Vector3(),destination=new THREE.Vector3();
-const UP=new THREE.Vector3(0,1,0);
+const UP=new THREE.Vector3(0,1,0),STANDING_EYE_HEIGHT=1.68;
+let seatedMode=false,seatedLift=0,seatedCalibrated=false;
 const deadzone=(v)=>Math.abs(v)<.16?0:Math.sign(v)*(Math.abs(v)-.16)/.84;
 function activate(){active=true;document.body.classList.add('exploring');}
+seatedButton.addEventListener('click',()=>{seatedMode=!seatedMode;seatedButton.setAttribute('aria-pressed',String(seatedMode));seatedButton.textContent=seatedMode?'Seated: On':'Seated: Off';});
 walkButton.addEventListener('click',async()=>{activate();if(!coarse){try{await canvas.requestPointerLock();}catch{ /* Drag look remains available when pointer lock is denied. */ }}});
 document.querySelector('#help').addEventListener('click',()=>{document.body.classList.toggle('exploring');});
 function look(dx,dy){rig.rotation.y-=dx*.003;pitch=THREE.MathUtils.clamp(pitch-dy*.0025,-1.35,1.35);camera.rotation.set(pitch,0,0,'YXZ');}
@@ -68,25 +70,31 @@ async function checkVR(){
 vrButton.addEventListener('click',async()=>{
   if(currentSession){await currentSession.end();return;}
   try{
-    // local-floor preserves the user's measured standing/seated height.
+    // local-floor keeps the floor stable; seated mode adds a one-time calibrated eye-height lift.
     const session=await navigator.xr.requestSession('immersive-vr',{requiredFeatures:['local-floor']});
-    currentSession=session;camera.position.set(0,0,0);camera.rotation.set(0,0,0);pitch=0;
-    session.addEventListener('end',()=>{currentSession=null;camera.position.set(0,1.68,0);camera.rotation.set(0,0,0);camera.fov=72;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();document.body.classList.remove('xr');vrButton.textContent='Enter VR';keys.clear();renderer.shadowMap.needsUpdate=true;});
+    currentSession=session;seatedLift=0;seatedCalibrated=!seatedMode;camera.position.set(0,0,0);camera.rotation.set(0,0,0);pitch=0;
+    session.addEventListener('end',()=>{currentSession=null;seatedLift=0;seatedCalibrated=false;camera.position.set(0,1.68,0);camera.rotation.set(0,0,0);camera.fov=72;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();document.body.classList.remove('xr');vrButton.textContent='Enter VR';keys.clear();renderer.shadowMap.needsUpdate=true;});
     await renderer.xr.setSession(session);renderer.xr.setFoveation(1);activate();document.body.classList.add('xr');document.querySelector('#error').hidden=true;vrButton.textContent='Exit VR';
     // Rebuild the static shadow once after the rendering target changes.
     renderer.shadowMap.needsUpdate=true;
-  }catch(error){if(currentSession){await currentSession.end().catch(()=>{});currentSession=null;}camera.position.set(0,1.68,0);vrButton.textContent='Try entering VR again';fail(error.name==='NotAllowedError'?'VR permission was declined. Select Enter VR and allow the session when you are ready.':'Could not enter VR. Open this page directly in Meta Quest Browser and try again.');}
+  }catch(error){if(currentSession){await currentSession.end().catch(()=>{});currentSession=null;}seatedLift=0;seatedCalibrated=false;camera.position.set(0,1.68,0);vrButton.textContent='Try entering VR again';fail(error.name==='NotAllowedError'?'VR permission was declined. Select Enter VR and allow the session when you are ready.':'Could not enter VR. Open this page directly in Meta Quest Browser and try again.');}
 });
 checkVR();
 
-function locomotion(dt){
+function locomotion(dt,frame){
   const xr=renderer.xr.isPresenting;
   // The XR ArrayCamera is not parented to the rig. Synchronize the tracked pose
   // into the attached user camera before movement so pivots use today's pose.
-  if(xr){rig.updateMatrixWorld(true);renderer.xr.updateCamera(camera);}
+  if(xr){
+    rig.updateMatrixWorld(true);renderer.xr.updateCamera(camera);
+    if(seatedMode&&!seatedCalibrated&&frame){
+      const refSpace=renderer.xr.getReferenceSpace(),pose=refSpace?frame.getViewerPose(refSpace):null;
+      if(pose){seatedLift=THREE.MathUtils.clamp(STANDING_EYE_HEIGHT-pose.transform.position.y,0,.9);seatedCalibrated=true;}
+    }
+  }
   const view=camera;
   let mx=touchMove.x,my=touchMove.y,turn=0,speed=2.4;
-  if(xr){mx=my=0;for(const source of currentSession.inputSources){const gp=source.gamepad;if(!gp)continue;const offset=gp.axes.length>=4?2:0;if(source.handedness==='left'){mx=deadzone(gp.axes[offset]||0);my=deadzone(gp.axes[offset+1]||0);if(gp.buttons[3]?.pressed)speed=3.8;}if(source.handedness==='right')turn=deadzone(gp.axes[offset]||0);}}
+  if(xr){mx=my=0;for(const source of currentSession.inputSources){const gp=source.gamepad;if(!gp)continue;const offset=gp.axes.length>=4?2:0;if(source.handedness==='left'){mx=deadzone(gp.axes[offset]||0);my=deadzone(gp.axes[offset+1]||0);}if(source.handedness==='right'){turn=deadzone(gp.axes[offset]||0);if(gp.buttons[3]?.pressed)speed=3.8;}}}
   else{mx+=(keys.has('KeyD')?1:0)-(keys.has('KeyA')?1:0);my+=(keys.has('KeyS')||keys.has('ArrowDown')?1:0)-(keys.has('KeyW')||keys.has('ArrowUp')?1:0);turn=(keys.has('ArrowRight')?1:0)-(keys.has('ArrowLeft')?1:0);if(keys.has('ShiftLeft')||keys.has('ShiftRight'))speed=4.2;}
   if(turn)rotateAroundHead(rig,view,-turn*1.35*dt);
   if(Math.abs(mx)+Math.abs(my)>.001){
@@ -96,7 +104,7 @@ function locomotion(dt){
     moveWithCollision(destination,(right.x*mx-forward.x*my)*speed*dt,(right.z*mx-forward.z*my)*speed*dt,world.colliders,world.bounds);
     rig.position.x+=destination.x-head.x;rig.position.z+=destination.z-head.z;
   }
-  view.getWorldPosition(head);rig.position.y=THREE.MathUtils.damp(rig.position.y,groundHeight(head.x,head.z),14,dt);
+  view.getWorldPosition(head);const heightOffset=xr&&seatedMode?seatedLift:0;rig.position.y=THREE.MathUtils.damp(rig.position.y,groundHeight(head.x,head.z)+heightOffset,14,dt);
 }
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();if(!renderer.xr.isPresenting)renderer.setSize(innerWidth,innerHeight);});
 canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();fail('The browser paused the graphics session. Refresh this page to return to Cedar Street.');});
@@ -104,11 +112,11 @@ canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();fail('
 // Small debug surface for future environment work and repeatable validation.
 window.cityDebug={renderer,scene,camera,rig,world,
   teleport(x,z,yaw=rig.rotation.y,y=1.68){if(renderer.xr.isPresenting)return false;rig.position.set(x,groundHeight(x,z),z);rig.rotation.y=yaw;camera.position.set(0,y,0);camera.rotation.set(0,0,0);pitch=0;return true;},
-  info(){return{drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,textures:renderer.info.memory.textures,geometryCount:renderer.info.memory.geometries,trees:world.treeCount,buildings:world.buildingCount,colliders:world.colliders.length,position:rig.position.toArray(),xr:renderer.xr.isPresenting,fps:window.cityDebug.fps||0};}
+  info(){return{drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,textures:renderer.info.memory.textures,geometryCount:renderer.info.memory.geometries,trees:world.treeCount,buildings:world.buildingCount,colliders:world.colliders.length,position:rig.position.toArray(),xr:renderer.xr.isPresenting,seatedMode,seatedLift,fps:window.cityDebug.fps||0};}
 };
-renderer.setAnimationLoop(time=>{
+renderer.setAnimationLoop((time,frame)=>{
   const dt=Math.min(Math.max((time-lastTime)/1000,0),.045);lastTime=time;
-  if(active||renderer.xr.isPresenting)locomotion(dt);
+  if(active||renderer.xr.isPresenting)locomotion(dt,frame);
   world.update(time*.001);
   if(sky)sky.position.copy(rig.position);
   renderer.render(scene,camera);
