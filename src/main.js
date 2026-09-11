@@ -4,6 +4,7 @@ import { makeMaterials } from './materials.js';
 import { buildWorld } from './world.js';
 import { moveWithCollision, rotateAroundHead } from './geometry.js';
 import { groundHeight } from './surfaces.js';
+import { createVRHands } from './hands.js';
 
 const canvas=document.querySelector('#world'),vrButton=document.querySelector('#enter-vr'),walkButton=document.querySelector('#walk'),seatedButton=document.querySelector('#seated-mode'),help=document.querySelector('#control-help');
 const coarse=matchMedia('(pointer: coarse)').matches;
@@ -26,15 +27,8 @@ const {m}=makeMaterials(renderer);
 let world;
 try{world=buildWorld(scene,m);}catch(error){fail('The neighbourhood could not finish loading. Please refresh the page.');throw error;}
 const sky=scene.getObjectByName('evening-sky');
+const hands=createVRHands({renderer,parent:rig,onError:(message)=>console.warn(message)});
 renderer.shadowMap.needsUpdate=true;
-
-// Controllers are deliberately simple, self-contained grips with no external assets.
-for(let i=0;i<2;i++){
-  const grip=renderer.xr.getControllerGrip(i);rig.add(grip);
-  const body=new THREE.Mesh(new THREE.CapsuleGeometry(.029,.09,3,8),new THREE.MeshLambertMaterial({color:'#dedfca'}));body.rotation.x=-.27;body.position.set(0,-.028,.015);grip.add(body);
-  const top=new THREE.Mesh(new THREE.CylinderGeometry(.045,.033,.025,12),m.dark);top.position.set(0,.029,-.015);grip.add(top);
-  const stick=new THREE.Mesh(new THREE.SphereGeometry(.011,8,6),m.dark);stick.position.set(i===0?.015:-.015,.05,-.022);grip.add(stick);
-}
 
 const keys=new Set(),touchMove={x:0,y:0};let active=false,pitch=0,drag=null,lastTime=0,frameCount=0,sampleStart=0;
 const head=new THREE.Vector3(),forward=new THREE.Vector3(),right=new THREE.Vector3(),destination=new THREE.Vector3();
@@ -110,13 +104,14 @@ window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camer
 canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();fail('The browser paused the graphics session. Refresh this page to return to Cedar Street.');});
 
 // Small debug surface for future environment work and repeatable validation.
-window.cityDebug={renderer,scene,camera,rig,world,
+window.cityDebug={renderer,scene,camera,rig,world,hands,
   teleport(x,z,yaw=rig.rotation.y,y=1.68){if(renderer.xr.isPresenting)return false;rig.position.set(x,groundHeight(x,z),z);rig.rotation.y=yaw;camera.position.set(0,y,0);camera.rotation.set(0,0,0);pitch=0;return true;},
   info(){return{drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,textures:renderer.info.memory.textures,geometryCount:renderer.info.memory.geometries,trees:world.treeCount,buildings:world.buildingCount,colliders:world.colliders.length,position:rig.position.toArray(),xr:renderer.xr.isPresenting,seatedMode,seatedLift,fps:window.cityDebug.fps||0};}
 };
 renderer.setAnimationLoop((time,frame)=>{
   const dt=Math.min(Math.max((time-lastTime)/1000,0),.045);lastTime=time;
   if(active||renderer.xr.isPresenting)locomotion(dt,frame);
+  hands.update(dt);
   world.update(time*.001);
   if(sky)sky.position.copy(rig.position);
   renderer.render(scene,camera);
