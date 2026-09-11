@@ -1,6 +1,14 @@
 # Schedule 69 — Cedar Street
 
-A small, original Three.js neighbourhood for a standalone Quest 3 VR game. Cedar Street includes a gas station, market, laundromat, diner, apartments, garage, and fenced houses. Pine Avenue continues north through two enterable shops and south to a residential stretch with an unfurnished starter house and a neighbouring home. Gameplay, NPCs, vehicles, inventory, and furniture are not implemented yet.
+A small, original Three.js neighbourhood for a standalone Quest 3 VR game. Cedar Street includes a gas station, market, laundromat, diner, apartments, garage, and fenced houses. Pine Avenue continues north through two enterable shops and south to a residential stretch with an unfurnished starter house and a neighbouring home. At the far eastern end, Cedar Street now meets a coastal road and the Cedar Beach esplanade. Gameplay, NPCs, vehicles, inventory, and furniture are not implemented yet.
+
+## Cedar Beach esplanade
+
+From spawn, follow Cedar Street east through the Pine Avenue intersection and past Cedar Court. The street opens into a **T-junction with the Esplanade**, a 146 m coastal road beside a broad waterfront promenade.
+
+The promenade has ocean-facing benches, lamps, pine planting beds, beach signs, crossings, and a continuous seawall railing. Two gently sloping ramps lead down to the sand. Player ground height follows the ramps and beach surface, and the railing prevents walking off the seawall. The beach extends to a shallow shoreline; swimming is not implemented.
+
+The ocean has subtle animated swell, ripples and shoreline foam. It uses one opaque shader draw with no reflection cameras or screen effects. The road ends are framed by barriers and coastal rocks, leaving clear places for a later extension.
 
 ## Pine Avenue extension
 
@@ -51,21 +59,34 @@ GitHub Actions builds and deploys `dist/` on pushes to `main`. Repository Settin
 
 - `src/world.js`: layout and reusable building, house, fence, tree, and street-prop builders. Building fronts face local +Z. Use `b.area(x, z, yaw, callback)` to place a lot; distances use metres.
 - `src/pine-avenue.js`: new shop shells, starter-home layout, real door/window openings, garden, and street extension. Named scene nodes `PineSupply`, `PineGeneralStore`, and `StarterHouse` identify the usable spaces. `world.places` and `world.starterHouse` expose their entrance and room positions for future gameplay integration.
+- `src/coast.js`: coastal T-junction, promenade, seawall, beach ramps and sand mesh. `world.coast` exposes road, promenade, ramp and shoreline destinations.
+- `src/surfaces.js`: shared coast dimensions and surface-height functions used by both geometry and locomotion.
+- `src/ocean.js`: the `CedarOcean` mesh and animated water shader, advanced through `world.update(seconds)`.
 - `src/geometry.js`: geometry batching, collision, and headset-pivot turning. Static pieces are merged by material and 40 m spatial cell for frustum culling.
 - `src/materials.js`: deterministic texture generation and shared sign atlas. Brick, concrete, asphalt, roofing, and siding have metre-scaled UVs. Replace maps here when adding authored textures later.
 - `src/main.js`: rendering, lighting, player rig, desktop/touch input, and WebXR session lifecycle.
 
-The current scene contains 14 buildings, 65 instanced pines, about 113,420 geometry triangles (excluding sky and controller models), and 263 collision bounds. The initial desktop frustum intersects about 191 draw batches. Trees in the extension lots were moved or removed to keep paths and interiors clear. These are geometry counts, not a measured Quest frame rate.
+The current scene contains 14 buildings, 69 instanced pines, about 134,708 geometry triangles (including the ocean, excluding sky and controller models), and 332 collision bounds. The initial desktop frustum intersects about 232 draw batches. Trees in the extension lots were moved or removed to keep paths and interiors clear. These are geometry counts, not a measured Quest frame rate.
 
 Rendering uses Lambert materials, shared procedural textures, one static 2048 px directional shadow map, and WebXR foveation. Shadows are refreshed at startup and on VR session transitions. If a future change moves shadow casters, explicitly invalidate the shadow map or change the shadow update strategy.
 
 ## Verification
 
-Production build, finite geometry, collision tunnelling/sliding, world boundaries, and turning with an offset headset have been checked. The neighbourhood check verifies 17 connected destinations from the original spawn, open entrances at head height, doorway traversal, rear garden access, solid wall collision, closed ceilings, and floors at the correct player height. It also probes lawn levels, foundations, complete front paths, service-lane crossings, fire escape attachment and facade edges. Both checks run before deployment. The available remote browser had WebGL disabled, so live browser rendering, touch input, and real headset performance could not be verified there.
+Production build, finite geometry, collision tunnelling/sliding, world boundaries, and turning with an offset headset have been checked. The neighbourhood check verifies 27 connected destinations from the original spawn, open entrances at head height, doorway traversal, rear garden access, solid wall collision, closed ceilings, and floors at the correct player height. It also probes lawn levels, foundations, complete front paths, service-lane crossings, fire escape attachment and facade edges. Coastal checks cover the direct street connection, both beach ramps, continuous ramp heights, seawall collision, terrain heights and the water animation update. Both checks run before deployment. The available remote browser had WebGL disabled, so live browser rendering, touch input, and real headset performance could not be verified there.
 
 The visual pass was inspected from 13 offline views covering both streets, front and rear gardens, the fire escape, garage, gas station, shop fronts and house foundations.
 
+The waterfront extension was inspected from eight further offline views, including arrival at the junction, both promenade directions, a ramp, the beach looking back at town, the shoreline, an overview and the original street. The ocean shaders compiled and rendered in the offline EGL renderer after adapting Three.js shader inputs to desktop GLSL. This does not replace native WebGL or headset validation.
+
 The images below are **offline geometry previews**, rendered from the same scene meshes and textures with approximate lighting. They are not browser screenshots or Quest performance evidence.
+
+Cedar Beach extension:
+
+![Esplanade promenade and beach](docs/esplanade-preview.jpg)
+![Beach access ramp and ocean](docs/beach-access-preview.jpg)
+![Cedar Street coastal junction](docs/coast-junction-preview.jpg)
+
+Town visual pass:
 
 ![Cedar Street geometry preview](docs/cedar-street-preview.jpg)
 ![Residential foundations and paths](docs/residential-polish-preview.jpg)

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {makeMaterials} from '../src/materials.js';
 import {buildWorld} from '../src/world.js';
 import {moveWithCollision} from '../src/geometry.js';
+import {COAST,groundHeight} from '../src/surfaces.js';
 
 // Collision/layout checks need geometry only, so canvas paint calls are no-ops.
 // This deliberately does not claim to test actual browser or texture rendering.
@@ -37,6 +38,8 @@ const targets=[];
 for(const place of world.places){targets.push([place.name+' approach',place.approach],[place.name+' entrance',place.entrance],[place.name+' interior',place.inside]);if(place.stockroom)targets.push([place.name+' stockroom',place.stockroom]);}
 for(const [name,position]of Object.entries(world.starterHouse.rooms))targets.push(['Starter house '+name,position]);
 targets.push(['Back garden',world.starterHouse.garden]);
+for(const name of['roadCenter','promenade','north','south','beach','shore'])targets.push(['Coast '+name,world.coast[name]]);
+for(const [index,ramp]of world.coast.ramps.entries())for(const end of['top','bottom'])targets.push([`Coast ramp ${index+1} ${end}`,ramp[end]]);
 for(const [name,p]of targets){assert(free(p[0],p[2]),name+' must be clear of collision.');assert(seen[gridPoint(p[0],p[2])],name+' must connect to the original spawn.');}
 
 // Check straight entry/exit travel with the actual locomotion solver, not just the grid.
@@ -90,5 +93,23 @@ for(const height of[4.3,7.3,10.3])for(let x=53.03;x<54.15;x+=.18){
 }
 ray.set(new THREE.Vector3(76.65,1.8,-8),new THREE.Vector3(0,0,-1));ray.far=1.5;
 assert.equal(ray.intersectObjects(meshes,false).length,0,'Ground-floor windows must stay within Cedar Court’s wall edges.');
+
+const arrival=new THREE.Vector3(-28,0,0);
+moveWithCollision(arrival,145,0,world.colliders,world.bounds);
+assert(Math.abs(arrival.x-117)<.03,'Cedar Street must open directly onto the promenade.');
+for(const ramp of world.coast.ramps){
+  const position=new THREE.Vector3(...ramp.top),end=new THREE.Vector3(...ramp.bottom);
+  moveWithCollision(position,end.x-position.x,end.z-position.z,world.colliders,world.bounds);
+  assert(Math.abs(position.x-end.x)<.03,'Beach ramps must be traversable from top to bottom.');
+  for(let x=120;x<140;x+=.1)assert(Math.abs(groundHeight(x+.1,position.z)-groundHeight(x,position.z))<.03,'Ramp entry and exit must have no height jumps.');
+}
+const wallStop=new THREE.Vector3(119,0,0);moveWithCollision(wallStop,5,0,world.colliders,world.bounds);
+assert(wallStop.x<COAST.promenadeEdge-.25,'The railing must prevent walking off the seawall.');
+for(const [x,z]of[[104,20],[117,0],[126,-31],[132,-31],[137,41],[150,0],[162,0]]){
+  const expected=groundHeight(x,z);ray.set(new THREE.Vector3(x,expected+2,z),new THREE.Vector3(0,-1,0));ray.far=2.1;
+  const hit=ray.intersectObjects(meshes,false)[0];assert(hit&&Math.abs(hit.point.y-expected)<.025,'Coastal terrain and player ground height must agree.');
+}
+const water=scene.getObjectByName('CedarOcean');assert(water?.material.isShaderMaterial);world.update(3.25);assert.equal(water.material.uniforms.uTime.value,3.25);
 console.log(`Passed ${targets.length} connected destinations, entrances, rooms, lawns, foundations, front paths, fire escape attachment and facade edges.`);
+console.log('Passed the coastal street connection, beach ramps, seawall collision, terrain heights and ocean update.');
 console.log(JSON.stringify({buildings:world.buildingCount,triangles:world.triangles,trees:world.treeCount,colliders:world.colliders.length}));

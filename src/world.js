@@ -2,6 +2,9 @@ import * as THREE from 'three';
 import { CityBuilder } from './geometry.js';
 import { SignAtlas, random } from './materials.js';
 import { extendPineAvenue } from './pine-avenue.js';
+import { buildCoast } from './coast.js';
+import { addOcean } from './ocean.js';
+import { COAST } from './surfaces.js';
 
 // Metres, Y up. Building fronts point toward local +Z; each lot can be moved or rotated.
 export function buildWorld(scene, m) {
@@ -157,7 +160,7 @@ export function buildWorld(scene, m) {
   function pine(x,z,h=12,s=1){trees.push({x,z,h,s,rot:rng()*Math.PI*2});b.collision(x,z,.42,.42);}
 
   // Continuous streets, four sidewalk corners, and a service lane behind each block.
-  b.box(0,-.35,0,1200,.55,1200,'soil',0,false);
+  b.box((COAST.promenadeEdge-600)/2,-.35,0,COAST.promenadeEdge+600,.55,1200,'soil',0,false);
   // Raised land fills the blocks up to 12 cm, just below the 14–15 cm paving.
   // Splitting at every road keeps grass out of the asphalt and lane crossings.
   for(const [left,right]of[[-91,17.14],[26.86,91]])for(const [back,front]of[[-115,-50],[-44,-5.15],[5.15,46.5],[51.5,120]])
@@ -224,16 +227,18 @@ export function buildWorld(scene, m) {
   for(const [x,z]of[[-10,-7.6],[38,-7.6],[-34,8],[59,-7.6]]){b.cylinder(x,.68,z,.31,.29,1.06,'metal',10);b.cylinder(x,1.24,z,.34,.34,.09,'dark',10);b.collision(x,z,.65,.65);}
   // Pines give the district its scale and break up the boxy roofline.
   for(const [x,z,h]of[[-80,-28,15],[-79,-9,12],[-32,-20,14],[-29,-37,12],[-9,-39,14],[9,-37,12],[32,-35,15],[57,-37,13],[81,-34,16],[81,-10,13],[-79,17,13],[-54,17,11],[-29,17,13],[-4,16,15],[10,28,13],[-77,39,16],[-52,40,14],[-29,41,12],[-5,40,15],[59,38,11],[82,39,14],[82,14,13],[33,38,12]])pine(x,z,h,.9+rng()*.25);
-  for(let i=0;i<34;i++){const x=-100+i*6+rng()*4;const northZ=-61-rng()*8,northH=12+rng()*10;const southZ=65+rng()*10,southH=11+rng()*8;if(x< -14||x>68){pine(x,northZ,northH,.95);if(i%2===0)pine(x,southZ,southH,1);}}
+  for(let i=0;i<34;i++){const x=-100+i*6+rng()*4;const northZ=-61-rng()*8,northH=12+rng()*10;const southZ=65+rng()*10,southH=11+rng()*8;if(x< -14||(x>68&&x<93)){pine(x,northZ,northH,.95);if(i%2===0)pine(x,southZ,southH,1);}}
   const extension=extendPineAvenue(b,{m,atlas,sign,signs,house,rooftop,pitchedRoof,fence,lamp,utility,wire,pine,dumpster});
   buildingCount+=extension.additionalShops+1; // Shops plus the new enterable starter house.
   // Unwalkable perimeter is framed by real fences and vegetation.
-  fence(-84,-56,-84,58,false);fence(83,-56,83,58,false);
-  for(let i=0;i<20;i++){const x=-115+i*12,h=8+rng()*20,z=-146-rng()*35;b.box(x,h/2,z,8+rng()*11,h,9+rng()*14,i%3===0?'darkBrick':'plaster');b.box(x,h+.2,z,10,.5,12,'trim');}
+  fence(-84,-56,-84,58,false);fence(83,-56,83,-8.7,false);fence(83,8.7,83,58,false);
+  for(let i=0;i<19;i++){const x=-115+i*12,h=8+rng()*20,z=-146-rng()*35;b.box(x,h/2,z,8+rng()*11,h,9+rng()*14,i%3===0?'darkBrick':'plaster');b.box(x,h+.2,z,10,.5,12,'trim');}
+  const coast=buildCoast(b,{atlas,sign,signs,bench,lamp,pine,fence});
   const triangles=b.finish();
   const treeStats=buildPines(scene,m,trees);
   addSky(scene);
-  return {colliders:b.colliders,bounds:b.bounds,triangles:triangles+treeStats,treeCount:trees.length,buildingCount,places:extension.places,starterHouse:extension.home};
+  const ocean=addOcean(scene);
+  return {colliders:b.colliders,bounds:b.bounds,triangles:triangles+treeStats+ocean.triangles,treeCount:trees.length,buildingCount,places:extension.places,starterHouse:extension.home,coast,update:ocean.update};
 }
 
 function buildPines(scene,m,trees){

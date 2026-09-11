@@ -3,6 +3,7 @@ import './style.css';
 import { makeMaterials } from './materials.js';
 import { buildWorld } from './world.js';
 import { moveWithCollision, rotateAroundHead } from './geometry.js';
+import { groundHeight } from './surfaces.js';
 
 const canvas=document.querySelector('#world'),vrButton=document.querySelector('#enter-vr'),walkButton=document.querySelector('#walk'),help=document.querySelector('#control-help');
 const coarse=matchMedia('(pointer: coarse)').matches;
@@ -20,7 +21,7 @@ const rig=new THREE.Group();rig.name='PlayerRig';scene.add(rig);rig.add(camera);
 const spawn={x:-28,z:7.12,yaw:-.57};rig.position.set(spawn.x,.14,spawn.z);rig.rotation.y=spawn.yaw;camera.position.set(0,1.68,0);
 scene.add(new THREE.HemisphereLight('#c8dadd','#69694a',2.1));
 const sun=new THREE.DirectionalLight('#ffe0ac',2.7);sun.position.set(-68,72,45);sun.target.position.set(0,0,0);scene.add(sun,sun.target);
-sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-145,right:145,top:125,bottom:-125,near:1,far:250});sun.shadow.bias=-.00015;sun.shadow.normalBias=.025;sun.shadow.camera.updateProjectionMatrix();
+sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-145,right:170,top:135,bottom:-125,near:1,far:250});sun.shadow.bias=-.00015;sun.shadow.normalBias=.025;sun.shadow.camera.updateProjectionMatrix();
 const {m}=makeMaterials(renderer);
 let world;
 try{world=buildWorld(scene,m);}catch(error){fail('The neighbourhood could not finish loading. Please refresh the page.');throw error;}
@@ -77,7 +78,6 @@ vrButton.addEventListener('click',async()=>{
 });
 checkVR();
 
-function groundHeight(x,z){if(Math.abs(z)<5||Math.abs(x-22)<4.78||Math.abs(z+47)<3||Math.abs(z-49)<2.5)return 0;return .14;}
 function locomotion(dt){
   const xr=renderer.xr.isPresenting;
   // The XR ArrayCamera is not parented to the rig. Synchronize the tracked pose
@@ -108,6 +108,7 @@ window.cityDebug={renderer,scene,camera,rig,world,
 renderer.setAnimationLoop(time=>{
   const dt=Math.min(Math.max((time-lastTime)/1000,0),.045);lastTime=time;
   if(active||renderer.xr.isPresenting)locomotion(dt);
+  world.update(time*.001);
   renderer.render(scene,camera);
   frameCount++;if(time-sampleStart>=1000){window.cityDebug.fps=Math.round(frameCount*1000/(time-sampleStart));frameCount=0;sampleStart=time;}
   if(!document.querySelector('#loading').classList.contains('done'))document.querySelector('#loading').classList.add('done');

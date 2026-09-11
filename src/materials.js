@@ -60,6 +60,13 @@ export function makeMaterials(renderer) {
       for(let line=0;line<32;line++){c.fillStyle=rng()>.5?'#eed8b61c':'#514d4319';c.fillRect(x+rng()*(s/12-2),rng()*s,.5+rng()*.8,18+rng()*95);}
     }grain(c,s,18000,.03);
   });
+  const sand=texture(512,5.5,(c,s)=>{
+    c.fillStyle='#c7bda7';c.fillRect(0,0,s,s);grain(c,s,48000,.065);
+    for(let row=0;row<24;row++){
+      c.strokeStyle='#f0deba12';c.lineWidth=1.2;c.beginPath();
+      for(let x=0;x<=s;x+=8){const y=row*s/24+Math.sin(x/s*Math.PI*4+row)*2.1;if(x===0)c.moveTo(x,y);else c.lineTo(x,y);}c.stroke();
+    }
+  });
   const m={};
   const lam=(name,color,map=null)=>{const mat=new THREE.MeshLambertMaterial({color,map});mat.name=name;m[name]=mat;return mat;};
   lam('brick','#c3a99a',brick);lam('redBrick','#c58f76',brick);lam('darkBrick','#9a9385',brick);
@@ -73,6 +80,8 @@ export function makeMaterials(renderer) {
   const glass=lam('glass','#4c6969');glass.emissive.set('#233632');glass.emissiveIntensity=.15;
   const glow=lam('glow','#ffd598');glow.emissive.set('#ffd18b');glow.emissiveIntensity=.8;
   const lit=lam('curtain','#b0a282');lit.emissive.set('#7c6745');lit.emissiveIntensity=.2;
+  lam('sand','#e7e1d0',sand);lam('coastalStone','#a1a69b',plaster);
+  m.beach=m.sand.clone();m.beach.name='shore-sand';m.beach.vertexColors=true;
   return {m,textures};
 }
 
