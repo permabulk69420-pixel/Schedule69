@@ -88,13 +88,18 @@ export function makeMaterials(renderer) {
 export class SignAtlas {
   constructor() {
     this.canvas=document.createElement('canvas');this.canvas.width=2048;this.canvas.height=2048;this.ctx=this.canvas.getContext('2d');this.count=0;
+    // Four independent shelves: wide fascia signs only need 64 px of height.
+    this.columnHeights=[0,0,0,0];
     this.texture=new THREE.CanvasTexture(this.canvas);this.texture.colorSpace=THREE.SRGBColorSpace;this.texture.anisotropy=4;
     this.material=new THREE.MeshLambertMaterial({map:this.texture,side:THREE.DoubleSide});this.material.name='neighbourhood-signs';
   }
   add(title,subtitle='',bg='#334c40',fg='#e9dcc0',style='sign') {
-    const index=this.count++,col=index%4,row=Math.floor(index/4),x=col*512,y=row*256,c=this.ctx;
+    const height=style==='wide'?64:256,col=this.columnHeights.indexOf(Math.min(...this.columnHeights));
+    const x=col*512,y=this.columnHeights[col],c=this.ctx;
+    if(y+height>this.canvas.height)throw new Error('Neighbourhood sign atlas is full.');
+    this.columnHeights[col]+=height;this.count++;
     if(style==='wide'){
-      c.fillStyle=bg;c.fillRect(x,y,512,256);c.strokeStyle=fg;c.lineWidth=2;c.strokeRect(x+6,y+4,500,56);
+      c.fillStyle=bg;c.fillRect(x,y,512,64);c.strokeStyle=fg;c.lineWidth=2;c.strokeRect(x+6,y+4,500,56);
       c.textAlign='center';c.textBaseline='middle';c.fillStyle=fg;c.font='700 38px Arial';c.fillText(title,x+256,y+33,474);
       this.texture.needsUpdate=true;return{u0:(x+1)/2048,v0:1-(y+63)/2048,u1:(x+511)/2048,v1:1-(y+1)/2048,aspect:8};
     }

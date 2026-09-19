@@ -5,6 +5,7 @@ import { extendPineAvenue } from './pine-avenue.js';
 import { buildCoast } from './coast.js';
 import { addOcean } from './ocean.js';
 import { COAST } from './surfaces.js';
+import { dressNeighbourhood } from './neighbourhood-details.js';
 
 // Metres, Y up. Building fronts point toward local +Z; each lot can be moved or rotated.
 export function buildWorld(scene, m) {
@@ -221,10 +222,10 @@ export function buildWorld(scene, m) {
   b.area(29,7.8,0,()=>{b.cylinder(0,1.85,0,.06,.06,3.5,'metal');sign(0,3.35,0,2.3,.43,'cedar');sign(0,2.89,0,2.2,.43,'pine',Math.PI/2);b.collision(0,0,.16,.16);});
   sign(-27,1.85,-7.3,1.6,1.15,'notice');b.box(-27,1,-7.38,.12,2,.15,'wood');
   bench(-8,-7.3);bench(39,-7.5);bench(-35,8,Math.PI);
-  b.cylinder(-33,1.9,7.7,.045,.045,3.5,'metal');sign(-33,3.05,7.7,.7,.95,'bus',Math.PI);
+  b.cylinder(-31.1,1.9,7.7,.045,.045,3.5,'metal');sign(-31.1,3.05,7.7,.7,.95,'bus',Math.PI);
   sign(-77,2.7,-6.8,.7,1,'speed');b.cylinder(-77,1.4,-6.88,.035,.035,2.6,'metal');
   hydrant(13,7.5);hydrant(31,-7.6);hydrant(-60,-7.1);
-  for(const [x,z]of[[-10,-7.6],[38,-7.6],[-34,8],[59,-7.6]]){b.cylinder(x,.68,z,.31,.29,1.06,'metal',10);b.cylinder(x,1.24,z,.34,.34,.09,'dark',10);b.collision(x,z,.65,.65);}
+  for(const [x,z]of[[-10,-7.6],[38,-7.6],[-32.1,7.3],[59,-7.6]]){b.cylinder(x,.68,z,.31,.29,1.06,'metal',10);b.cylinder(x,1.24,z,.34,.34,.09,'dark',10);b.collision(x,z,.65,.65);}
   // Pines give the district its scale and break up the boxy roofline.
   for(const [x,z,h]of[[-80,-28,15],[-79,-9,12],[-32,-20,14],[-29,-37,12],[-9,-39,14],[9,-37,12],[32,-35,15],[57,-37,13],[81,-34,16],[81,-10,13],[-79,17,13],[-54,17,11],[-29,17,13],[-4,16,15],[10,28,13],[-77,39,16],[-52,40,14],[-29,41,12],[-5,40,15],[59,38,11],[82,39,14],[82,14,13],[33,38,12]])pine(x,z,h,.9+rng()*.25);
   for(let i=0;i<34;i++){const x=-100+i*6+rng()*4;const northZ=-61-rng()*8,northH=12+rng()*10;const southZ=65+rng()*10,southH=11+rng()*8;if(x< -14||(x>68&&x<93)){pine(x,northZ,northH,.95);if(i%2===0)pine(x,southZ,southH,1);}}
@@ -234,11 +235,12 @@ export function buildWorld(scene, m) {
   fence(-84,-56,-84,58,false);fence(83,-56,83,-8.7,false);fence(83,8.7,83,58,false);
   for(let i=0;i<19;i++){const x=-115+i*12,h=8+rng()*20,z=-146-rng()*35;b.box(x,h/2,z,8+rng()*11,h,9+rng()*14,i%3===0?'darkBrick':'plaster');b.box(x,h+.2,z,10,.5,12,'trim');}
   const coast=buildCoast(b,{atlas,sign,signs,bench,lamp,pine,fence});
+  const details=dressNeighbourhood(b,{atlas,sign,signs,bench,fence});
   const triangles=b.finish();
   const treeStats=buildPines(scene,m,trees);
   addSky(scene);
   const ocean=addOcean(scene);
-  return {colliders:b.colliders,bounds:b.bounds,triangles:triangles+treeStats+ocean.triangles,treeCount:trees.length,buildingCount,places:extension.places,starterHouse:extension.home,coast,update:ocean.update};
+  return {colliders:b.colliders,bounds:b.bounds,triangles:triangles+treeStats+ocean.triangles,treeCount:trees.length,buildingCount,places:extension.places,starterHouse:extension.home,coast,details,update:ocean.update};
 }
 
 function buildPines(scene,m,trees){
