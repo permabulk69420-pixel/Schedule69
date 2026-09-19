@@ -7,6 +7,9 @@ export class CityBuilder {
   area(x,z,yaw,fn){const prev=this.transform.clone();this.transform.multiply(new THREE.Matrix4().compose(new THREE.Vector3(x,0,z),new THREE.Quaternion().setFromAxisAngle(UP,yaw),new THREE.Vector3(1,1,1)));fn();this.transform.copy(prev);}
   add(g,mat,x=0,y=0,z=0,rx=0,ry=0,rz=0,shadow=true) {
     const material=typeof mat==='string'?this.m[mat]:mat;
+    // Polyhedra are non-indexed; boxes and cylinders are indexed. Normalize the
+    // former so organic props can share a material batch with architectural parts.
+    if(!g.index)g.setIndex(Array.from({length:g.attributes.position.count},(_,i)=>i));
     this.temp.position.set(x,y,z);this.temp.rotation.set(rx,ry,rz);this.temp.scale.set(1,1,1);this.temp.updateMatrix();g.applyMatrix4(this.temp.matrix);g.applyMatrix4(this.transform);
     const center=new THREE.Vector3(x,y,z).applyMatrix4(this.transform),key=`${material.uuid}:${Math.floor(center.x/40)}:${Math.floor(center.z/40)}:${shadow}`;
     if(!this.batches.has(key))this.batches.set(key,{material,geometries:[],shadow});this.batches.get(key).geometries.push(g);

@@ -35,6 +35,7 @@ function isFree(i){if(i<0||i>=occupancy.length)return false;if(!occupancy[i]){co
 const start=gridPoint(-28,7.12);assert(isFree(start));seen[start]=1;queue[0]=start;let head=0,tail=1;
 while(head<tail){const i=queue[head++],column=i%width;for(const next of[i-width,i+width,...(column>0?[i-1]:[]),...(column<width-1?[i+1]:[])]){if(next<0||next>=seen.length||seen[next]||!isFree(next))continue;seen[next]=1;queue[tail++]=next;}}
 const targets=[];
+for(const place of world.details.destinations)targets.push([place.name,place.position]);
 for(const place of world.places){targets.push([place.name+' approach',place.approach],[place.name+' entrance',place.entrance],[place.name+' interior',place.inside]);if(place.stockroom)targets.push([place.name+' stockroom',place.stockroom]);}
 for(const [name,position]of Object.entries(world.starterHouse.rooms))targets.push(['Starter house '+name,position]);
 targets.push(['Back garden',world.starterHouse.garden]);
@@ -110,6 +111,26 @@ for(const [x,z]of[[104,20],[117,0],[126,-31],[132,-31],[137,41],[150,0],[162,0]]
   const hit=ray.intersectObjects(meshes,false)[0];assert(hit&&Math.abs(hit.point.y-expected)<.025,'Coastal terrain and player ground height must agree.');
 }
 const water=scene.getObjectByName('CedarOcean');assert(water?.material.isShaderMaterial);world.update(3.25);assert.equal(water.material.uniforms.uTime.value,3.25);
+// New street dressing must leave a body-width through route and the garden gate
+// open. Test the actual movement solver, including both walking directions.
+for(const [name,a,c]of[
+  ['Cedar shop pavement',[-24,-6.25],[12,-6.25]],
+  ['Bus stop pavement',[-39,6.4],[-28,6.4]],
+  ['Cedar Corner path',[2,9],[2,31]],
+  ['Pine shop pavement',[15.4,-95],[15.4,-53]],
+  ['Pine Patch entry',[28.6,-82],[61,-82]],
+  ['Pine Patch spine',[48,-94],[48,-64]],
+  ['Pine Patch pergola approach',[48,-88.8],[55,-88.8]],
+  ['Promenade through route',[116,25],[116,53]],
+])for(const [start,end]of[[a,c],[c,a]]){
+  const p=new THREE.Vector3(start[0],0,start[1]);
+  moveWithCollision(p,end[0]-p.x,end[1]-p.z,world.colliders,world.bounds);
+  assert(Math.hypot(p.x-end[0],p.z-end[1])<.03,name+' must stay open in both directions.');
+}
+// All signs must remain inside the shared texture after packing the new boards.
+for(const mesh of meshes)if(mesh.material.name==='neighbourhood-signs'){
+  for(const uv of mesh.geometry.attributes.uv.array)assert(uv>=0&&uv<=1,'Sign UV must be inside the atlas.');
+}
 console.log(`Passed ${targets.length} connected destinations, entrances, rooms, lawns, foundations, front paths, fire escape attachment and facade edges.`);
 console.log('Passed the coastal street connection, beach ramps, seawall collision, terrain heights and ocean update.');
 console.log(JSON.stringify({buildings:world.buildingCount,triangles:world.triangles,trees:world.treeCount,colliders:world.colliders.length}));
